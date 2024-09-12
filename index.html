@@ -139,7 +139,11 @@
 
         // Function to export the snapshot
         function exportSnapshot() {
-            html2canvas(document.body).then(canvas => {
+            // Set the browser zoom to 100%
+            document.body.style.zoom = "100%";
+
+            // Capture the snapshot of the pre section
+            html2canvas(codeContainer).then(canvas => {
                 const link = document.createElement('a');
                 link.download = `snapshot_line_${currentLine}.png`;
                 link.href = canvas.toDataURL();

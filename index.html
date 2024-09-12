@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Code Preview with Navigation and Custom Highlighting</title>
+
+    <!-- Prism.js CSS for syntax highlighting -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+
+    <!-- Tailwind CSS for styling -->
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+
+    <style>
+        body {
+            background-color: #1E1E1E;
+            color: #FFFFFF;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 16px;
+            line-height: 1.5;
+            margin: 0;
+            padding: 10%;
+            height: 100vh;
+            display: flex;
+            justify-content: flex-start;
+            align-items: flex-start;
+        }
+
+        pre {
+            width: 100%;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            height: 100vh;
+            overflow: hidden;
+            aspect-ratio: 9 / 16;
+        }
+
+        /* Custom highlight class */
+        .highlight-line {
+            background-color: #006400 !important;
+            /* Dark green background for highlighted lines */
+            display: inline-block;
+            padding: 2px 4px;
+            /* Small padding around highlighted text */
+            border-radius: 4px;
+            /* Rounded corners for highlight */
+        }
+
+        /* Style for displaying the line number */
+        .line-number {
+            color: #fff;
+            background-color: #444;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 18px;
+        }
+    </style>
+</head>
+
+<body>
+    <pre id="code-container" class="line-numbers"><code class="language-python"></code></pre>
+
+    <!-- Prism.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+    <script
+        src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.js"></script>
+
+    <!-- html2canvas for capturing snapshots -->
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+
+    <!-- Navigation controls -->
+    <div class="fixed bottom-0 left-0 w-full flex justify-center items-center p-4 bg-gray-800 rounded-t-lg shadow-lg">
+        <button onclick="toggleInput()" class="p-2 rounded-full bg-blue-600 text-white mr-2">Enter Code</button>
+        <div id="line-number-display" class="line-number mx-4">Line: 1</div>
+        <button onclick="prevLine()" class="p-2 rounded-full bg-blue-600 text-white mr-2">Prev</button>
+        <button onclick="nextLine()" class="p-2 rounded-full bg-green-600 text-white mr-2">Next</button>
+        <button onclick="exportSnapshot()" class="p-2 rounded-full bg-red-600 text-white">Export Snapshot</button>
+    </div>
+
+    <!-- Input box for entering new code -->
+    <div id="input-container" class="fixed bottom-0 left-0 w-full p-4 bg-gray-800 rounded-t-lg shadow-lg hidden">
+        <textarea id="code-input" class="w-full h-32 p-2 rounded-lg bg-gray-700 text-white"
+            placeholder="Enter new code here..."></textarea>
+        <button onclick="submitCode()" class="p-2 rounded-full bg-green-600 text-white mt-2">Submit</button>
+    </div>
+
+    <script>
+        let currentLine = 1;
+        const codeContainer = document.getElementById('code-container');
+        let codeLines = [];
+        let totalLines = 0;
+
+        // Function to highlight the current line
+        function highlightLine(lineNumber) {
+            codeContainer.innerHTML = ''; // Clear the container
+
+            // Rebuild the code block with the highlighted line and syntax highlighting
+            codeLines.forEach((line, index) => {
+                const lineSpan = document.createElement('span');
+                lineSpan.innerHTML = Prism.highlight(line, Prism.languages.python, 'python'); // Apply Prism.js syntax highlighting
+
+                if (index + 1 === lineNumber) {
+                    lineSpan.classList.add('highlight-line');
+                }
+
+                codeContainer.appendChild(lineSpan);
+                codeContainer.appendChild(document.createElement('br')); // Add line breaks
+            });
+
+            // Update the line number display
+            document.getElementById('line-number-display').textContent = `Line: ${lineNumber}`;
+        }
+
+        // Function to move to the previous line
+        function prevLine() {
+            do {
+                if (currentLine > 1) {
+                    currentLine--;
+                } else {
+                    currentLine = totalLines; // Loop back to the last line if at the first line
+                }
+            } while (codeLines[currentLine - 1].trim() === ''); // Skip empty lines
+            highlightLine(currentLine);
+        }
+
+        // Function to move to the next line
+        function nextLine() {
+            do {
+                if (currentLine < totalLines) {
+                    currentLine++;
+                } else {
+                    currentLine = 1; // Loop back to the first line if at the last line
+                }
+            } while (codeLines[currentLine - 1].trim() === ''); // Skip empty lines
+            highlightLine(currentLine);
+        }
+
+        // Function to export the snapshot
+        function exportSnapshot() {
+            html2canvas(document.body).then(canvas => {
+                const link = document.createElement('a');
+                link.download = `snapshot_line_${currentLine}.png`;
+                link.href = canvas.toDataURL();
+                link.click();
+            });
+        }
+
+        // Function to toggle the input box
+        function toggleInput() {
+            const inputContainer = document.getElementById('input-container');
+            inputContainer.classList.toggle('hidden');
+        }
+
+        // Function to submit the new code
+        function submitCode() {
+            const input = document.getElementById('code-input').value;
+
+            // Update the code lines and total lines
+            codeLines = input.split('\n');
+            totalLines = codeLines.length;
+            currentLine = 1; // Reset to the first line
+
+            // Highlight the first line
+            highlightLine(currentLine);
+
+            // Hide the input box
+            toggleInput();
+        }
+
+        // Initial highlighting for the first line
+        highlightLine(currentLine);
+    </script>
+</body>
+
+</html>
